@@ -1,60 +1,30 @@
-from whisperspeech.pipeline import Pipeline
-import torchaudio
-import shutil
-from huggingface_hub import hf_hub_download
-from pathlib import Path
-from argparse import ArgumentParser
+
+import soundfile as sf
+from espnet2.bin.tts_inference import Text2Speech
 import os
+from espnet_model_zoo.downloader import ModelDownloader
 
-MODEL_DIR = 'models/'
-OUTPUT_DIR = 'outputs/'
 
-def output_audio(text, lang='fr',
-                 s2a_ref='collabora/whisperspeech:s2a-q4-tiny-en+pl.model',
-                 t2s_ref='collabora/whisperspeech:t2s-small-en+pl.model'):
-    """
-    Refer to https://github.com/collabora/WhisperSpeech/tree/main    
-    returns a tensor of amplitude values representing audio 
-    """
-    # Load models
-    s2a_filename = get_model_filename(s2a_ref)
-    t2s_filename = get_model_filename(t2s_ref)
-    pipe = Pipeline(t2s_filename, s2a_ref=s2a_filename)
+d = ModelDownloader()  # <module_dir> is used as cachedir by default
+model = d.download_and_unpack("https://zenodo.org/record/3986231/files/tts_train_fastspeech_raw_phn_tacotron_g2p_en_no_space_train.loss.best.zip?download=1")
 
-    # Run inference
-    result = pipe.generate(text=text, lang=lang).cpu()
-    #pipe.generate_to_file(fname=f'{OUTPUT_DIR}output.wav', text=text, speaker=None, lang='fr')
 
-    # Uncomment to save audio
-    #os.makedirs(OUTPUT_DIR, exist_ok = True)
-    #torchaudio.save(f'{OUTPUT_DIR}output.wav', result, sample_rate=22050)
-    return result
+def text_to_speech(text):
+    # Load the pre-trained TTS model
+    text2speech = Text2Speech.from_pretrained("model")
 
-def get_model_filename(ref):
-    """
-    ref is a huggingface reference (repo:filename).
-    If not already saved in local, downloads the model locally.
-    Returns file path pointing to the model.
-    """
-    repo_id, filename = ref.split(":", 1)
-    local_filename = f"models/{filename}"
-    my_file = Path(local_filename)
-    if not my_file.is_file():
-        download_hf_model(repo_id, filename)
-    return local_filename
+    # Perform text-to-speech
+    speech = text2speech(text)["wav"]
 
-def download_hf_model(repo_id, filename):
-    temp_filename = hf_hub_download(repo_id=repo_id, filename=filename)
-    os.makedirs(MODEL_DIR, exist_ok=True)
-    shutil.copy2(temp_filename, MODEL_DIR)
-    
-    
-def main():
-    parser = ArgumentParser()
-    parser.add_argument('-t', '--text', help='String text to convert to speech.')
-    parser.add_argument('-l', '--lang', default='fr', help='Language of the text.')
-    args = parser.parse_args()
-    output_audio(args.text, args.lang)
+    # Ensure the "Audio" directory exists
+    os.makedirs("Audio", exist_ok=True)
 
-if __name__ == "__main__":
-    main()
+    # Save the audio file in the "Audio" directory
+    output_path = os.path.join("Audio", "output.wav")
+
+    # Save the output to a WAV file in the "Audio" folder
+    sf.write(output_path , speech.numpy(), text2speech.fs, "PCM_16")
+
+# Test the function
+text = "Hello, this is a test of the text-to-speech function."
+text_to_speech(text)
