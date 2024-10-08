@@ -3,6 +3,9 @@ torch
 torchvision
 torchaudio
 WhisperSpeech==0.8
+langchain
+langchain_ollama
+ollama
 audioread==3.0.1
 certifi==2024.8.30
 cffi==1.17.1
