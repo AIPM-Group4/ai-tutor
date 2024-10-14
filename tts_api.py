@@ -1,5 +1,6 @@
 
 import os
+import io
 
 import uuid
 
@@ -49,7 +50,7 @@ def output_audio(text: str, lang: str = 'fr', stream: bool = False) -> str:
     )
 
     if stream:
-        audio_stream = BytesIO()
+        audio_stream = io.BytesIO()
 
         for chunk in response:
             if chunk:

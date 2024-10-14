@@ -8,8 +8,7 @@ client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
 )
 
-def process_speech_to_text(audio_file_path, lang="en"):
-    audio_file = open(audio_file_path, "rb")
+def process_speech_to_text(audio_file, lang="en"):
     transcript = client.audio.transcriptions.create(
         model="whisper-1",
         file=audio_file,
@@ -18,4 +17,4 @@ def process_speech_to_text(audio_file_path, lang="en"):
     )
     return transcript
 
-print(process_speech_to_text("New Recording 37.m4a"))
+# print(process_speech_to_text("New Recording 37.m4a"))
