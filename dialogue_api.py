@@ -6,13 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 HISTORY_LENGTH = 100
-TEMPERATURE = 0.5
 MODEL = "gpt-4o"  # You can change this to other OpenAI models as needed
 
 class Model():
-    def __init__(self, language="français") -> None:
+    def __init__(self, language="english") -> None:
         self.language = language
         self.history = []
 
@@ -22,7 +20,8 @@ class Model():
         )  # Make sure to set your API key in the environment variable
 
         # Define behaviour
-        self.system_prompt = "Tu es un système qui engage des conversations avec l'utilisateur afin qu'il apprenne {language}. Tu parles en {language}. Tu es gentil et énergique. Tu es ouvert à parler de nombreux sujets. Vérifie si l'utilisateur fait des erreurs grammaticales lorsqu'il parle et essaie de les corriger subtilement en continuant la conversation. Par exemple, tu peux répéter ce qu'il a dit dans le cadre de ta phrase de manière naturelle. Ne corrige pas trop. Ignore les erreurs grammaticales moins importantes qu'il fait. Si l'erreur grammaticale est très importante, tu peux la signaler et la corriger directement, mais toujours continuer la conversation. Encourage l'utilisateur à parler. Sois bref dans tes réponses. Il doit parler plus que toi pour apprendre. Commence par te présenter."
+        # self.system_prompt = "Tu es un système qui engage des conversations avec l'utilisateur afin qu'il apprenne {language}. Tu parles en {language}. Tu es gentil et énergique. Tu es ouvert à parler de nombreux sujets. Vérifie si l'utilisateur fait des erreurs grammaticales lorsqu'il parle et essaie de les corriger subtilement en continuant la conversation. Par exemple, tu peux répéter ce qu'il a dit dans le cadre de ta phrase de manière naturelle. Ne corrige pas trop. Ignore les erreurs grammaticales moins importantes qu'il fait. Si l'erreur grammaticale est très importante, tu peux la signaler et la corriger directement, mais toujours continuer la conversation. Encourage l'utilisateur à parler. Sois bref dans tes réponses. Il doit parler plus que toi pour apprendre. Commence par te présenter."
+        self.system_prompt = "You should output you response in this format: <response> | <list of errors and their corrections>. You are a French native speaker speaking with a user who is learning French. You are a helpful assistant. You should output you response in this format: <response> | <list of errors and their corrections>."
 
     def process(self, query: str) -> str:
         messages = [{"role": "system", "content": self.system_prompt.format(language=self.language)}]
@@ -32,7 +31,6 @@ class Model():
         response = self.client.chat.completions.create(
             model=MODEL,
             messages=messages,
-            temperature=TEMPERATURE
         )
         output = response.choices[0].message.content
 
@@ -40,7 +38,12 @@ class Model():
         self.history.append(AIMessage(content=output))
         if len(self.history) > HISTORY_LENGTH:
             self.history.pop(0)
-        return output
+        
+        if "|" in output:
+            response, errors = output.split("|")
+            return response, errors
+        else:
+            return output, ""
     
     # Only for testing
     def stream(self, query: str) -> None:
@@ -52,7 +55,6 @@ class Model():
         for chunk in self.client.chat.completions.create(
             model=MODEL,
             messages=messages,
-            temperature=TEMPERATURE,
             stream=True
         ):
             if chunk.choices[0].delta.content is not None:
