@@ -3,7 +3,7 @@ import os
 import io
 
 from transcribe_api import process_speech_to_text, process_speech_bytes_to_text
-from tts_api import output_audio
+from tts_api import output_audio_gtts
 from dialogue_api import Model
 from pydub import AudioSegment
 from audio_recorder_streamlit import audio_recorder
@@ -36,7 +36,7 @@ def display_chat():
         display_message(message)
 
 def display_message(message):
-    with st.chat_message("user"):
+    with st.chat_message(message["user"]):
         if message["user"] == "user":
             st.markdown(
                 f"<div style='text-align: right; background-color: #d1e7ff; color: black; padding: 10px; border-radius: 10px; margin: 10px 0; width: fit-content; float: right;'>{message['text']}</div>",
@@ -78,14 +78,13 @@ if st.session_state.conversation_active:
             if not TEST_MODE:
                 response = model.process(st.session_state.audio_text)
             else:
-                response = 'response'
+                response = 'Bonjour, comment allez vous? Voulez-vous apprendre le français?'
             st.session_state.text_sent = True  # Set flag to True after response is generated
             # Step 3: Convert the chatbot's response to speech and play
             st.markdown("Playing response...")
-            if not TEST_MODE:
-                message = {"user": "assistant", "text": response, "audio_bytes": output_audio(response, stream=True)}
-            else:
-                message = {"user": "assistant", "text": response, "audio_bytes": None}
+            audio = output_audio_gtts(response, 'fr')
+            #audio = output_audio(response, stream=True)
+            message = {"user": "assistant", "text": response, "audio_bytes": audio}
             st.session_state.chat_history.append(message)
             st.rerun()
 

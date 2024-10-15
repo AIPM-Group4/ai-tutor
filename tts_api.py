@@ -7,6 +7,7 @@ import uuid
 from dotenv import load_dotenv
 from elevenlabs import VoiceSettings
 from elevenlabs.client import ElevenLabs
+from gtts import gTTS
 
 load_dotenv()
 
@@ -72,6 +73,11 @@ def output_audio(text: str, lang: str = 'fr', stream: bool = False) -> str:
     # Return the path of the saved audio file
     return save_file_path
 
+def output_audio_gtts(text: str, lang: str = 'fr'):
+    tts = gTTS(text, lang=lang)
+    audio_bytes = io.BytesIO()
+    tts.write_to_fp(audio_bytes)
+    return audio_bytes
 
 if __name__ == "__main__":
     output_audio("Bonjour, comment allez vous? Voulez-vous apprendre le français?", lang="fr")
