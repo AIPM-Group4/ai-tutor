@@ -18,3 +18,14 @@ pip install -r requirements.txt
 
 # run 
 streamlit run prototype.py
+
+# aitutor_basic with LiveKit
+First set up Sandbox app locally as well as CLI : https://cloud.livekit.io/projects/p_5t2ooezutnl/sandbox
+
+Then : 
+cd <aitutor_basic>
+
+python3 -m venv venv
+source venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 agent.py dev
