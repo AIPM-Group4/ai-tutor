@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 HISTORY_LENGTH = 100
-MODEL = "gpt-4o"  # You can change this to other OpenAI models as needed
+MODEL = "gpt-4o-mini"  # You can change this to other OpenAI models as needed
 
 class Model():
     def __init__(self, language="english") -> None:
