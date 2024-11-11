@@ -1,4 +1,5 @@
 ./models/*
 /.venv/
-__pycache__/
 .env
+.streamlit/
+__pycache__/
