@@ -30,7 +30,7 @@ source venv/bin/activate
 python3 -m pip install -r requirements.txt
 python3 agent.py dev
 
-# Streaming 
+# Streaming (speech-to-speech pipeline)(not used)
 pip install faster-whisper
 pip install torch torchvision torchaudio
 pip install rich
