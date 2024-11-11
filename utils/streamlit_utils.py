@@ -12,18 +12,20 @@ def restart_conversation(text_sent=False, audio_processed=False, chat_history=[]
     st.session_state.conversation_active = conversation_active
     st.session_state.selected_session = selected_session
     st.rerun()
-
+    
 def display_message(message):
     with st.chat_message(message["user"]):
         if message["user"] == "user":
             st.markdown(
-                f"<div style='text-align: right; background-color: #d1e7ff; color: black; padding: 10px; border-radius: 10px; margin: 10px 0; width: fit-content; float: right;'>{message['text']}</div>",
+                f"<div style='text-align: right; background-color: #d1e7ff; color: black; padding: 10px; "
+                f"border-radius: 10px; margin: 10px 0; width: fit-content; float: right;'>{message['text']}</div>",
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                f"<div style='text-align: left; background-color: #f0f0f0; color: black; padding: 10px; border-radius: 10px; margin: 10px 0; width: fit-content; float: left;'>{message['text']}</div>",
+                f"<div style='text-align: left; background-color: #f0f0f0; color: black; padding: 10px; "
+                f"border-radius: 10px; margin: 10px 0; width: fit-content; float: left;'>{message['text']}</div>",
                 unsafe_allow_html=True,
             )
-            if message['audio_bytes']:
+            if 'audio_bytes' in message and message['audio_bytes']:
                 st.audio(message['audio_bytes'], format="audio/wav", autoplay=True)

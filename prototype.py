@@ -36,6 +36,8 @@ if "selected_session" not in st.session_state:
     st.session_state.selected_session = None
 if "db" not in st.session_state:
     st.session_state.db = firestore.client()
+if "model" not in st.session_state:
+    st.session_state.model = None
 
 # If not logged in.
 if st.session_state.user == None:
@@ -99,14 +101,20 @@ else:
 
     else:
         if audio_bytes := audio_recorder(icon_size="4x", pause_threshold=7):
+            # If mic button clicked for the first time, begin conversation. 
             if not st.session_state.conversation_active:
                 st.session_state.conversation_active = True
                 st.session_state.session_id = str(uuid.uuid4())
                 # Chatbot model response
-                st.session_state.model = Model()
-                st.session_state.model.process("You are a system that engages in conversations with the user to help them learn french. You start by asking in English what kind of roleplay you are going to do. Then you start the roleplay in french. If the user asks you to speak in English, you do so. Otherwise, try to use simpler words if the user struggles with the language. You are a helpful assistant. You should output you response in this format: <response> | <list of errors and their corrections>.")
+                st.session_state.model = Model(
+                    system_prompt=(
+                        "You are a system that engages in conversations with the user to help them learn French. "
+                        "You start by asking in English what kind of roleplay you are going to do. Then you start the roleplay in French. "
+                        "If the user asks you to speak in English, you do so. Otherwise, try to use simpler words if the user struggles with the language. "
+                        "You are a helpful assistant. You should output your response in this format: <response> | <list of errors and their corrections>."
+                    )
+                )
             st_util.display_chat(st.session_state.chat_history)
-            model = st.session_state.model
             # Ensure the audio processing happens only once
             if not st.session_state.audio_processed:
                 # Process the audio to text
@@ -115,7 +123,7 @@ else:
                     text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang='fr')
                     message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
                 else:
-                    text = 'text'
+                    text = 'Sample text input.'
                     message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
                 db_util.save_message(user_id, st.session_state.session_id, message)
                 st.session_state.chat_history.append(message)
@@ -126,27 +134,23 @@ else:
             # Step 2: Send the text to chatbot model
             if "audio_text" in st.session_state and st.session_state.audio_processed and not st.session_state.text_sent:
                 if not TEST_MODE:
-                    response, errors = model.process(st.session_state.audio_text)
+                    response, errors = st.session_state.model.process(st.session_state.audio_text)
                 else:
-                    response = 'Bonjour, comment allez vous? Voulez-vous apprendre le français?'
+                    response = 'Bonjour, comment allez-vous? Voulez-vous apprendre le français?'
                     errors = ''
                 st.session_state.text_sent = True  # Set flag to True after response is generated
                 # Step 3: Convert the chatbot's response to speech and play
                 st.markdown("Playing response...")
                 audio = output_audio_gtts(response, 'fr')
-                #audio = output_audio(response, stream=True)
                 message = {"user": "assistant", "text": response, "audio_bytes": audio} 
                 db_util.save_message(user_id, st.session_state.session_id, message)
                 st.session_state.chat_history.append(message)
-                st.session_state.chat_history.append({"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None})
+                st.session_state.chat_history.append(
+                    {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
+                )
                 st.rerun()
 
         if st.session_state.conversation_active and st.session_state.text_sent:
             # Reset flags for new audio input
             st.session_state.text_sent = False
             st.session_state.audio_processed = False
-
-        #if st.button("Finish conversation"):
-            #st.session_state.conversation_active = False  # Keep the conversation active
-            #st.session_state.text_sent = True
-            #st.session_state.audio_processed = True
