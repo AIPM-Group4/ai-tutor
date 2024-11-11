@@ -87,7 +87,7 @@ else:
     st.sidebar.title("Previous Chat Sessions")
     session_ids = db_util.load_previous_sessions(user_id)
     for session in session_ids:
-        if st.sidebar.button(f"Session {session['session_id']} - {session['start_time']}"):
+        if st.sidebar.button(f"Session {session['start_time']}"):
             st_util.restart_conversation(selected_session=session["session_id"])
     
     if st.session_state.selected_session:

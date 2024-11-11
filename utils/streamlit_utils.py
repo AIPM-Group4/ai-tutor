@@ -11,6 +11,7 @@ def restart_conversation(text_sent=False, audio_processed=False, chat_history=[]
     st.session_state.chat_history = chat_history
     st.session_state.conversation_active = conversation_active
     st.session_state.selected_session = selected_session
+    st.session_state.model = None
     st.rerun()
     
 def display_message(message):

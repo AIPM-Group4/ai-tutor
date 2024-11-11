@@ -18,7 +18,7 @@ def save_message(user_id, session_id, message):
 
 def load_previous_sessions(user_id):
     sessions_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions")
-    sessions = sessions_ref.stream()
+    sessions = sessions_ref.order_by("start_time", direction=firestore.Query.DESCENDING).stream()
     
     session_ids = []
     for session in sessions:
