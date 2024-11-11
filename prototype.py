@@ -20,7 +20,6 @@ TEST_MODE = False
 if not firebase_admin._apps: 
     cred = credentials.Certificate(dict(st.secrets['FIREBASE_CRED']['cred']))
     initialize_app(cred)
-    st.session_state.db = firestore.client()
         
 # Initialize session state for chat history and flags
 if "chat_history" not in st.session_state:
@@ -35,6 +34,8 @@ if "user" not in st.session_state:
     st.session_state.user = None
 if "selected_session" not in st.session_state:
     st.session_state.selected_session = None
+if "db" not in st.session_state:
+    st.session_state.db = firestore.client()
 
 # If not logged in.
 if st.session_state.user == None:
