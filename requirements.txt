@@ -2,6 +2,7 @@ streamlit
 torch
 torchvision
 torchaudio
+firebase_admin 
 WhisperSpeech==0.8
 langchain
 langchain_ollama
