@@ -93,6 +93,7 @@ def main():
         print(output + "\n")
         print("[errors: " + errors + "]")
         print("\n")
+        #print([{"role": "assistant" if (len(m.history) - 1 - i) % 2 == 0 else "user", "content": msg.content} for i, msg in enumerate(m.history)])
         query = input(">> ")
 
 
