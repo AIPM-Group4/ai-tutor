@@ -10,7 +10,7 @@ HISTORY_LENGTH = 100
 MODEL = "gpt-4o"  # You can change this to other OpenAI models as needed
 
 class Model():
-    def __init__(self, language="english") -> None:
+    def __init__(self, language="english", system_prompt=None) -> None:
         self.language = language
         self.history = []
 
