@@ -51,8 +51,8 @@ class Model():
         self.history.append(AIMessage(content=output))
 
         if "|" in output:
-            text, _ = output.split("|")
-            return text.strip()
+            texts = output.split("|")
+            return texts[0].strip()
         else:
             return output.strip()
 
