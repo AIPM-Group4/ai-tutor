@@ -75,43 +75,57 @@ if st.session_state.user == None:
 
 # If logged in
 else:
-    # Title
-    st.title("AI Tutor")
-    
     user_id = st.session_state.user.uid
-    
-    st.sidebar.button(label='Sign Out',on_click=auth_functions.sign_out,type='primary')
-    if st.sidebar.button(f'Begin new conversation'):
+    st.markdown('''
+    <style>
+        [data-testid="stSidebar"]{
+            min-width: 367px;
+            max-width: 400px;
+        }
+    </style>
+    ''', unsafe_allow_html=True)
+    col1, col2, col3 = st.sidebar.columns(([2, 1, 0.2]))
+    if col1.button(f'Begin new conversation'):
         st_util.restart_conversation()
+    col2.button(label='Sign Out',on_click=auth_functions.sign_out,type='primary')
         
     st.sidebar.title("Previous Chat Sessions")
     session_ids = db_util.load_previous_sessions(user_id)
+
     for session in session_ids:
-        if st.sidebar.button(f"Session {session['start_time']}"):
+        if st.sidebar.button(f"{session['title']}"):
             st_util.restart_conversation(selected_session=session["session_id"])
     
     if st.session_state.selected_session:
         # Display selected chat session messages
-        st.write(f"Chat History for Session {st.session_state.selected_session}")
-        messages = db_util.load_chat_history(user_id, st.session_state.selected_session)
-        st_util.display_chat(messages)
-        if st.button(label='Delete conversation'):
-            db_util.delete_chat_history(user_id, st.session_state.selected_session)
-            st_util.restart_conversation()
+        session_data = db_util.load_chat_info(user_id, st.session_state.selected_session)
+        st_util.display_chat_title(session_data)
+        st_util.display_settings(session_data)
+        st.subheader('Chat History')
+        st_util.display_chat(session_data['messages'])
 
     else:
-        if audio_bytes := audio_recorder(icon_size="4x", pause_threshold=7):
-            # If mic button clicked for the first time, begin conversation. 
-            if not st.session_state.conversation_active:
+        # Title
+        st.title("AI Tutor")
+        if not st.session_state.conversation_active:
+            text_prompt = st.text_input(label='Roleplay scenario description (optional)')
+            if st.button('Begin Conversation'):
                 st.session_state.conversation_active = True
                 st.session_state.session_id = str(uuid.uuid4())
-                # Chatbot model response
+                if text_prompt:
+                    db_util.save_chat_settings(user_id, st.session_state.session_id, {'text_prompt': text_prompt})
+                else:
+                    text_prompt = "Imagine you met someone at a social event in France, and you don't know anything about them. Start by introducing yourself in French, and then respond to their questions and initiate topics of conversation."
                 st.session_state.model = Model(
                     system_prompt=(
-                        """
-                        Play the role of a French language tutor. As a native French speaker, you will be speaking with someone who wants to improve their French skills through a simulated conversation. Imagine you met someone at a social event in France, and you don't know anything about them. Start by introducing yourself in French, and then respond to their questions and initiate topics of conversation. 
+                        f"""
+                        You are a French language tutor. As a native French speaker, you will be speaking with a tutee who wants to improve their French skills through a simulated conversation. 
                         Additionally, develop a response generation strategy for introducing subtle corrections to your answers when the provided information is unclear or incorrect.
                         Memorize any mistakes made during the conversation and provide a comprehensive report of errors at the conclusion of the discussion, detailing the corrections and explanations for the corrections. Go!
+                        
+                        Additionally, you are role-playing a real-life scenario that your tutee has specified. 
+                        The tutee described the following scenario: "{text_prompt}".
+                        You must play a suited role in the given scenario and interact with the tutee.
 
                         NOTES:
                         - Do not wait for the user to start speaking. Start by introducing yourself in French, and then respond to their questions and initiate topics of conversation. 
@@ -125,43 +139,51 @@ else:
                         """
                     )
                 )
+                first_message = st.session_state.model.first_interaction()
+                audio = output_audio_gtts(first_message, 'fr')
+                message = {"user": "assistant", "text": first_message, "audio_bytes": audio} 
+                db_util.save_message(user_id, st.session_state.session_id, message)
+                st.session_state.chat_history.append(message)
+                st.rerun()
+        else: 
             st_util.display_chat(st.session_state.chat_history)
-            # Ensure the audio processing happens only once
-            if not st.session_state.audio_processed:
-                # Process the audio to text
-                st.markdown("Processing audio...")
-                if not TEST_MODE:
-                    text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang='fr')
-                    message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
-                else:
-                    text = 'Sample text input.'
-                    message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
-                db_util.save_message(user_id, st.session_state.session_id, message)
-                st.session_state.chat_history.append(message)
-                st.session_state.audio_processed = True  # Set flag to True after processing
-                st.session_state.audio_text = text  # Store the processed text in session state
-                st.rerun()
+            if audio_bytes := audio_recorder(icon_size="4x", pause_threshold=7):
+                # Ensure the audio processing happens only once
+                if not st.session_state.audio_processed:
+                    # Process the audio to text
+                    st.markdown("Processing audio...")
+                    if not TEST_MODE:
+                        text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang='fr')
+                        message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
+                    else:
+                        text = 'Sample text input.'
+                        message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
+                    db_util.save_message(user_id, st.session_state.session_id, message)
+                    st.session_state.chat_history.append(message)
+                    st.session_state.audio_processed = True  # Set flag to True after processing
+                    st.session_state.audio_text = text  # Store the processed text in session state
+                    st.rerun()
 
-            # Step 2: Send the text to chatbot model
-            if "audio_text" in st.session_state and st.session_state.audio_processed and not st.session_state.text_sent:
-                if not TEST_MODE:
-                    response, errors = st.session_state.model.process(st.session_state.audio_text)
-                else:
-                    response = 'Bonjour, comment allez-vous? Voulez-vous apprendre le français?'
-                    errors = ''
-                st.session_state.text_sent = True  # Set flag to True after response is generated
-                # Step 3: Convert the chatbot's response to speech and play
-                st.markdown("Playing response...")
-                audio = output_audio_gtts(response, 'fr')
-                message = {"user": "assistant", "text": response, "audio_bytes": audio} 
-                db_util.save_message(user_id, st.session_state.session_id, message)
-                st.session_state.chat_history.append(message)
-                st.session_state.chat_history.append(
-                    {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
-                )
-                st.rerun()
+                # Step 2: Send the text to chatbot model
+                if "audio_text" in st.session_state and st.session_state.audio_processed and not st.session_state.text_sent:
+                    if not TEST_MODE:
+                        response, errors = st.session_state.model.process(st.session_state.audio_text)
+                    else:
+                        response = 'Bonjour, comment allez-vous? Voulez-vous apprendre le français?'
+                        errors = ''
+                    st.session_state.text_sent = True  # Set flag to True after response is generated
+                    # Step 3: Convert the chatbot's response to speech and play
+                    st.markdown("Playing response...")
+                    audio = output_audio_gtts(response, 'fr')
+                    message = {"user": "assistant", "text": response, "audio_bytes": audio} 
+                    db_util.save_message(user_id, st.session_state.session_id, message)
+                    st.session_state.chat_history.append(message)
+                    st.session_state.chat_history.append(
+                        {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
+                    )
+                    st.rerun()
 
-        if st.session_state.conversation_active and st.session_state.text_sent:
-            # Reset flags for new audio input
-            st.session_state.text_sent = False
-            st.session_state.audio_processed = False
+            if st.session_state.conversation_active and st.session_state.text_sent:
+                # Reset flags for new audio input
+                st.session_state.text_sent = False
+                st.session_state.audio_processed = False
