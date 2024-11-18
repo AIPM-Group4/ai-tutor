@@ -1,4 +1,10 @@
+from mutagen.mp3 import MP3
+import io
+import time
+from tts import output_audio_gtts
+import queue
 import streamlit as st
+import threading
 
 # Function to display chat messages in bubbles
 def display_chat(messages):
@@ -30,3 +36,35 @@ def display_message(message):
             )
             if 'audio_bytes' in message and message['audio_bytes']:
                 st.audio(message['audio_bytes'], format="audio/wav", autoplay=True)
+
+SENTINEL = "FINISHED"
+
+def _streaming_worker(text, q):
+    audio = bytearray()
+    chunks = text.split('.')
+    for chunk in chunks:
+        chunk_audio = output_audio_gtts(chunk, 'fr')
+        q.put(chunk_audio)
+        # Calculate duration
+        aux = MP3(chunk_audio)
+        duration = aux.info.length
+        q.put(duration)
+        audio.extend(chunk_audio.getvalue())
+    q.put(SENTINEL)
+    return io.BytesIO(audio)
+
+
+def stream_tts(text):
+    q = queue.Queue()
+    t = threading.Thread(target=_streaming_worker, args=(text, q))
+    t.start()
+    chunk_audio = q.get()
+    while chunk_audio != SENTINEL:
+        st.audio(chunk_audio, format="audio/wav", autoplay=True)
+        duration = q.get()
+        time.sleep(duration)
+        chunk_audio = q.get()
+
+    audio = t.join()
+    return audio
+

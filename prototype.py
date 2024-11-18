@@ -4,7 +4,6 @@ import utils.db_util as db_util
 import utils.streamlit_utils as st_util
 
 from transcribe import process_speech_to_text, process_speech_bytes_to_text
-from tts import output_audio_gtts
 from dialogue import Model
 import firebase_admin
 from firebase_admin import firestore, initialize_app, credentials
@@ -151,9 +150,11 @@ else:
                     errors = ''
                 st.session_state.text_sent = True  # Set flag to True after response is generated
                 # Step 3: Convert the chatbot's response to speech and play
+                message = {"user": "assistant", "text": response, "audio_bytes": None}
+                st_util.display_message(message)
                 st.markdown("Playing response...")
-                audio = output_audio_gtts(response, 'fr')
-                message = {"user": "assistant", "text": response, "audio_bytes": audio} 
+                audio = st_util.stream_tts(response)
+                message['audio_bytes'] = audio
                 db_util.save_message(user_id, st.session_state.session_id, message)
                 st.session_state.chat_history.append(message)
                 st.session_state.chat_history.append(
