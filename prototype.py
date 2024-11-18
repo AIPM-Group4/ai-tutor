@@ -151,10 +151,10 @@ else:
                 st.session_state.text_sent = True  # Set flag to True after response is generated
                 # Step 3: Convert the chatbot's response to speech and play
                 message = {"user": "assistant", "text": response, "audio_bytes": None}
-                st_util.display_message(message)
                 st.markdown("Playing response...")
                 audio = st_util.stream_tts(response)
                 message['audio_bytes'] = audio
+                st_util.display_message(message)
                 db_util.save_message(user_id, st.session_state.session_id, message)
                 st.session_state.chat_history.append(message)
                 st.session_state.chat_history.append(

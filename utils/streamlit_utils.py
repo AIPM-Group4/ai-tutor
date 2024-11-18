@@ -58,13 +58,23 @@ def stream_tts(text):
     q = queue.Queue()
     t = threading.Thread(target=_streaming_worker, args=(text, q))
     t.start()
+    audio_placeholder = st.empty()
+    text_placeholder = st.empty()
+    chunks = text.split('.')
+    current_text = ""
+    previous_text = ""
+    chunk_idx = 0
     chunk_audio = q.get()
     while chunk_audio != SENTINEL:
-        st.audio(chunk_audio, format="audio/wav", autoplay=True)
+        if chunk_idx < len(chunks):
+            previous_text = current_text
+            current_text += chunks[chunk_idx] + "."
+            text_placeholder.markdown(f"{previous_text} **{chunks[chunk_idx].strip()}.**")
+            chunk_idx += 1
+        audio_placeholder.audio(chunk_audio, format="audio/wav", autoplay=True)
         duration = q.get()
         time.sleep(duration)
         chunk_audio = q.get()
 
     audio = t.join()
     return audio
-
