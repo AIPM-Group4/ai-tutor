@@ -4,7 +4,6 @@ import utils.db_util as db_util
 import utils.streamlit_utils as st_util
 
 from transcribe import process_speech_to_text, process_speech_bytes_to_text
-from tts import output_audio_gtts
 from dialogue import Model
 import firebase_admin
 from firebase_admin import firestore, initialize_app, credentials
@@ -140,10 +139,10 @@ else:
                     )
                 )
                 first_message = st.session_state.model.first_interaction()
-                audio = output_audio_gtts(first_message, 'fr')
+                audio = st_util.stream_tts(first_message)
                 message = {"user": "assistant", "text": first_message, "audio_bytes": audio} 
                 db_util.save_message(user_id, st.session_state.session_id, message)
-                st.session_state.chat_history.append(message)
+                st.session_state.chat_history = [message]
                 st.rerun()
         else: 
             st_util.display_chat(st.session_state.chat_history)
@@ -164,24 +163,25 @@ else:
                     st.session_state.audio_text = text  # Store the processed text in session state
                     st.rerun()
 
-                # Step 2: Send the text to chatbot model
-                if "audio_text" in st.session_state and st.session_state.audio_processed and not st.session_state.text_sent:
-                    if not TEST_MODE:
-                        response, errors = st.session_state.model.process(st.session_state.audio_text)
-                    else:
-                        response = 'Bonjour, comment allez-vous? Voulez-vous apprendre le français?'
-                        errors = ''
-                    st.session_state.text_sent = True  # Set flag to True after response is generated
-                    # Step 3: Convert the chatbot's response to speech and play
-                    st.markdown("Playing response...")
-                    audio = output_audio_gtts(response, 'fr')
-                    message = {"user": "assistant", "text": response, "audio_bytes": audio} 
-                    db_util.save_message(user_id, st.session_state.session_id, message)
-                    st.session_state.chat_history.append(message)
-                    st.session_state.chat_history.append(
-                        {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
-                    )
-                    st.rerun()
+            # Step 2: Send the text to chatbot model
+            if "audio_text" in st.session_state and st.session_state.audio_processed and not st.session_state.text_sent:
+                if not TEST_MODE:
+                    response, errors = st.session_state.model.process(st.session_state.audio_text)
+                else:
+                    response = 'Bonjour, comment allez-vous? Voulez-vous apprendre le français?'
+                    errors = ''
+                st.session_state.text_sent = True  # Set flag to True after response is generated
+                # Step 3: Convert the chatbot's response to speech and play
+                st.markdown("Playing response...")
+                audio = st_util.stream_tts(response)
+                message = {"user": "assistant", "text": response, "audio_bytes": None}
+                #st_util.display_message(message)
+                db_util.save_message(user_id, st.session_state.session_id, message)
+                st.session_state.chat_history.append(message)
+                st.session_state.chat_history.append(
+                    {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
+                )
+                st.rerun()
 
             if st.session_state.conversation_active and st.session_state.text_sent:
                 # Reset flags for new audio input

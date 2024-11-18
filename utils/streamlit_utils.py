@@ -1,5 +1,11 @@
+from mutagen.mp3 import MP3
+import io
+import time
+from tts import output_audio_gtts
+import queue
 import streamlit as st
 from . import db_util
+import threading
 
 # Function to display chat messages in bubbles
 def display_chat(messages):
@@ -71,4 +77,48 @@ def display_message(message):
                 unsafe_allow_html=True,
             )
             if 'audio_bytes' in message and message['audio_bytes']:
-                st.audio(message['audio_bytes'], format="audio/wav", autoplay=True)
+                st.audio(message['audio_bytes'], format="audio/wav", autoplay=False)
+
+SENTINEL = "FINISHED"
+
+def _streaming_worker(text, q):
+    audio = bytearray()
+    chunks = text.split('.')
+    for chunk in chunks:
+        chunk_audio = output_audio_gtts(chunk, 'fr')
+        q.put(chunk_audio)
+        # Calculate duration
+        aux = MP3(chunk_audio)
+        duration = aux.info.length
+        q.put(duration)
+        audio.extend(chunk_audio.getvalue())
+    q.put(SENTINEL)
+    return io.BytesIO(audio)
+
+
+def stream_tts(text):
+    q = queue.Queue()
+    t = threading.Thread(target=_streaming_worker, args=(text, q))
+    t.start()
+    audio_placeholder = st.empty()
+    text_placeholder = st.empty()
+    chunks = text.split('.')
+    current_text = ""
+    previous_text = ""
+    chunk_idx = 0
+    full_audio = bytearray()
+    chunk_audio = q.get()
+    while chunk_audio != SENTINEL:
+        if chunk_idx < len(chunks):
+            previous_text = current_text
+            current_text += chunks[chunk_idx] + "."
+            text_placeholder.markdown(f"{previous_text} **{chunks[chunk_idx].strip()}.**")
+            chunk_idx += 1
+        audio_placeholder.audio(chunk_audio, format="audio/wav", autoplay=True)
+        full_audio.extend(chunk_audio.getvalue())
+        duration = q.get()
+        time.sleep(duration)
+        chunk_audio = q.get()
+
+    t.join()
+    return io.BytesIO(full_audio)
