@@ -64,6 +64,7 @@ def stream_tts(text):
     current_text = ""
     previous_text = ""
     chunk_idx = 0
+    full_audio = bytearray()
     chunk_audio = q.get()
     while chunk_audio != SENTINEL:
         if chunk_idx < len(chunks):
@@ -72,9 +73,10 @@ def stream_tts(text):
             text_placeholder.markdown(f"{previous_text} **{chunks[chunk_idx].strip()}.**")
             chunk_idx += 1
         audio_placeholder.audio(chunk_audio, format="audio/wav", autoplay=True)
+        full_audio.extend(chunk_audio.getvalue())
         duration = q.get()
         time.sleep(duration)
         chunk_audio = q.get()
 
-    audio = t.join()
-    return audio
+    t.join()
+    return io.BytesIO(full_audio)
