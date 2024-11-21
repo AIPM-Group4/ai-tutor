@@ -129,16 +129,22 @@ else:
         if not st.session_state.conversation_active:
             if st.session_state.session_id:
                 st_util.display_chat(st.session_state.chat_history)
-                feedback = generate_feedback(st.session_state.chat_history)
+                st.session_state.model = Model(
+                    system_prompt=(
+                    """
+                        This is a feedback summary
+                        You should add feedback based on the conversation {chat_history}
+                        You should add the following;
+                        1. Conversation Summary
+                        2. Compliments for users based on the conversation
+                        3. Grammatical Feedback
+                        4. Suggestions for Future Practice
+                    """
+                    )
+                )
+                feedback = st.session_state.model.feedback(st.session_state.chat_history)
                 st.write("## Feedback Summary")
-                st.write("### Conversation Summary")
-                st.write(feedback["summary"])
-                st.write("### Compliments")
-                st.write(feedback["compliments"])
-                st.write("### Grammatical Feedback")
-                st.write(feedback["grammatical_feedback"])
-                st.write("### Suggestions for Future Practice")
-                st.write(feedback["suggestions"])
+                st.write(feedback)
             else:
                 text_prompt = st.text_input(label='Roleplay scenario description (optional)')
                 if st.button('Begin Conversation'):
@@ -178,23 +184,34 @@ else:
                     st.session_state.chat_history = [message]
                     st.rerun()
         else: 
-            st_util.display_chat(st.session_state.chat_history)
-            if audio_bytes := audio_recorder(icon_size="4x", pause_threshold=7):
-                # Ensure the audio processing happens only once
-                if not st.session_state.audio_processed:
-                    # Process the audio to text
-                    st.markdown("Processing audio...")
-                    if not TEST_MODE:
-                        text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang='fr')
-                        message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
-                    else:
-                        text = 'Sample text input.'
-                        message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
-                    db_util.save_message(user_id, st.session_state.session_id, message)
-                    st.session_state.chat_history.append(message)
-                    st.session_state.audio_processed = True  # Set flag to True after processing
-                    st.session_state.audio_text = text  # Store the processed text in session state
-                    st.rerun()
+            st_util.display_chat(st.session_state.chat_history)            
+            if st.session_state.text_sent and st.session_state.audio_processed:
+                # Reset flags for new audio input
+                st.session_state.text_sent = False
+                st.session_state.audio_processed = False
+        
+            if not st.session_state.text_sent and not st.session_state.audio_processed and st.button("Finish Conversation"):
+                st_util.restart_conversation(session_id=st.session_state.session_id, chat_history=st.session_state.chat_history)            
+        
+            if not st.session_state.audio_processed:
+                audio_bytes = audio_recorder(icon_size="4x", pause_threshold=7)
+                if audio_bytes:
+                    # Ensure the audio processing happens only once
+                    if not st.session_state.audio_processed:
+                        # Process the audio to text
+                        st.markdown("Processing audio...")
+                        if not TEST_MODE:
+                            text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang='fr')
+                            message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
+                        else:
+                            text = 'Sample text input.'
+                            message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
+                        db_util.save_message(user_id, st.session_state.session_id, message)
+                        st.session_state.chat_history.append(message)
+                        st.session_state.audio_processed = True  # Set flag to True after processing
+                        audio_bytes = None
+                        st.session_state.audio_text = text  # Store the processed text in session state
+                        st.rerun()
 
             # Step 2: Send the text to chatbot model
             if "audio_text" in st.session_state and st.session_state.audio_processed and not st.session_state.text_sent:
@@ -215,13 +232,3 @@ else:
                     {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
                 )
                 st.rerun()
-
-            if st.session_state.conversation_active and st.session_state.text_sent:
-                # Reset flags for new audio input
-                st.session_state.text_sent = False
-                st.session_state.audio_processed = False
-                # Finish conversation
-                
-            if st.button("Finish Conversation"):
-                st.session_state.conversation_active = False
-                st_util.restart_conversation(session_id=st.session_state.session_id, chat_history=st.session_state.chat_history)
