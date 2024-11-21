@@ -175,12 +175,12 @@ else:
                 st.markdown("Playing response...")
                 audio = st_util.stream_tts(response)
                 message = {"user": "assistant", "text": response, "audio_bytes": None}
+                error_message = {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
                 #st_util.display_message(message)
-                db_util.save_message(user_id, st.session_state.session_id, message)
                 st.session_state.chat_history.append(message)
-                st.session_state.chat_history.append(
-                    {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
-                )
+                st.session_state.chat_history.append(error_message)
+                db_util.save_message(user_id, st.session_state.session_id, message)
+                db_util.save_message(user_id, st.session_state.session_id, error_message)
                 st.rerun()
 
             if st.session_state.conversation_active and st.session_state.text_sent:
