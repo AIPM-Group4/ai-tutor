@@ -2,6 +2,7 @@ streamlit
 torch
 torchvision
 torchaudio
+firebase_admin 
 WhisperSpeech==0.8
 langchain
 langchain_ollama
@@ -23,6 +24,7 @@ llvmlite==0.43.0
 MarkupSafe==2.1.5
 mpmath==1.3.0
 msgpack==1.1.0
+mutagen
 networkx==3.3
 numba==0.60.0
 numpy==1.26.4
