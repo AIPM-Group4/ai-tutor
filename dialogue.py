@@ -81,6 +81,35 @@ class Model():
             return output.strip(), ""
         
 
+    def feedback(self, chat_history: list[dict[str, str]]) -> dict[str, str]:
+        # generate the feedback based on the chathistory
+        content = """
+        This is a feedback summary
+        You should add feedback based on the conversation {chat_history}
+        You should add the following;
+        1. Conversation Summary
+        2. Compliments for users based on the conversation
+        3. Grammatical Feedback
+        4. Suggestions for Future Practice
+        """
+        messages = [{"role": "system", "content": content}]
+        
+        messages.extend(
+            [{"role": "assistant" if i % 2 == 0 else "user", "content": msg["text"]} for i, msg in enumerate(chat_history)]
+        )
+        messages.append({"role": "assistant", "content": "Finish Conversation"})
+        response = self.client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+        )
+        output = response.choices[0].message.content
+        self.history.extend([HumanMessage(content=msg["text"]) for msg in chat_history])
+        self.history.append(AIMessage(content=output))
+        if len(self.history) > HISTORY_LENGTH:
+            self.history.pop(0)
+        return output
+
+
 # For testing
 def main():
     m = Model()
