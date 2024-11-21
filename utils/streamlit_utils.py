@@ -53,6 +53,7 @@ def restart_conversation(text_sent=False,
                          chat_history=[], 
                          conversation_active=False,
                          selected_session=None,
+                         session_id=None,
                          model=None,
                          renaming_title=False):
     st.session_state.text_sent = text_sent
@@ -62,6 +63,7 @@ def restart_conversation(text_sent=False,
     st.session_state.selected_session = selected_session
     st.session_state.model = model
     st.session_state.renaming_title = renaming_title
+    st.session_state.session_id=session_id
     st.rerun()
     
 def display_message(message):
