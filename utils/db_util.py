@@ -43,7 +43,7 @@ def load_previous_sessions(user_id):
         session_data = session.to_dict()
         start_time = f'{session_data.get("start_time"):%Y-%m-%d %H:%M:%S}'
         if 'title' not in session_data:
-            session_data['title'] = f'Session {f'{session_data.get("start_time"):%Y-%m-%d %H:%M:%S}'}'
+            session_data['title'] = f'Session {start_time}'
             sessions_ref.document(session.id).update({
                 "title": session_data['title']
             })

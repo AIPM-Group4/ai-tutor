@@ -6,6 +6,7 @@ import uuid
 
 from dotenv import load_dotenv
 from elevenlabs import VoiceSettings
+import elevenlabs.client as ec
 from elevenlabs.client import ElevenLabs
 from gtts import gTTS
 
@@ -72,6 +73,36 @@ def output_audio(text: str, lang: str = 'fr', stream: bool = False) -> str:
 
     # Return the path of the saved audio file
     return save_file_path
+
+def output_audio_elevenlabs(text: str, prev=ec.OMIT, next=ec.OMIT, male: bool = False):
+    if not prev: prev = ec.OMIT
+    if not next: next = ec.OMIT
+    # Calling the text_to_speech conversion API with detailed parameters
+    response = client.text_to_speech.convert(
+        voice_id="nPczCjzI2devNBz1zQrb" if male else "XB0fDUnXU5powFXDhCwa",  # Charlotte/Brian pre-made voices
+        optimize_streaming_latency="0",
+        output_format="mp3_22050_32",
+        text=text,
+        model_id="eleven_multilingual_v2",  # use the turbo model for low latency, for other languages use the `eleven_multilingual_v2`
+        voice_settings=VoiceSettings(
+            stability=0.1,
+            similarity_boost=0.3,
+            style=0.2,
+            use_speaker_boost=True,
+        ),
+        previous_text=prev,
+        next_text=next,
+    )
+
+    audio_stream = io.BytesIO()
+
+    for chunk in response:
+        if chunk:
+            audio_stream.write(chunk)
+
+    audio_stream.seek(0)
+    return audio_stream
+
 
 def output_audio_gtts(text: str, lang: str = 'fr'):
     tts = gTTS(text, lang=lang)

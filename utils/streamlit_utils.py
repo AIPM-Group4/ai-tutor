@@ -2,7 +2,9 @@ from mutagen.mp3 import MP3
 import io
 import time
 from tts import output_audio_gtts
+from tts import output_audio_elevenlabs
 import queue
+import re
 import streamlit as st
 from . import db_util
 import threading
@@ -79,46 +81,49 @@ def display_message(message):
             if 'audio_bytes' in message and message['audio_bytes']:
                 st.audio(message['audio_bytes'], format="audio/wav", autoplay=False)
 
-SENTINEL = "FINISHED"
 
 def _streaming_worker(text, q):
-    audio = bytearray()
-    chunks = text.split('.')
-    for chunk in chunks:
-        chunk_audio = output_audio_gtts(chunk, 'fr')
-        q.put(chunk_audio)
+    full_audio = bytearray()
+    full_text = ""
+
+    chunks = re.split("(\.|\!|\?)", text)
+    if chunks[-1] == "": chunks = chunks[:-1]
+    chunks = [(chunks[i] + chunks[i+1]).strip() + " " for i in range(0, len(chunks), 2)]
+
+    for chunk_text in chunks:
+        # Generate audio
+        #chunk_audio = output_audio_gtts(chunk_text, 'fr')
+        chunk_audio = output_audio_elevenlabs(text=chunk_text, prev=full_text)
+
         # Calculate duration
         aux = MP3(chunk_audio)
         duration = aux.info.length
-        q.put(duration)
-        audio.extend(chunk_audio.getvalue())
-    q.put(SENTINEL)
-    return io.BytesIO(audio)
+
+        # Send chunk
+        q.put((chunk_audio, duration, full_text, chunk_text))
+
+        # Extend
+        full_audio.extend(chunk_audio.getvalue())
+        full_text += chunk_text
+
+    q.put(None)
+    return io.BytesIO(full_audio)
 
 
 def stream_tts(text):
+    text_placeholder = st.empty()
+    audio_placeholder = st.empty()
     q = queue.Queue()
     t = threading.Thread(target=_streaming_worker, args=(text, q))
     t.start()
-    audio_placeholder = st.empty()
-    text_placeholder = st.empty()
-    chunks = text.split('.')
-    current_text = ""
-    previous_text = ""
-    chunk_idx = 0
-    full_audio = bytearray()
-    chunk_audio = q.get()
-    while chunk_audio != SENTINEL:
-        if chunk_idx < len(chunks):
-            previous_text = current_text
-            current_text += chunks[chunk_idx] + "."
-            text_placeholder.markdown(f"{previous_text} **{chunks[chunk_idx].strip()}.**")
-            chunk_idx += 1
-        audio_placeholder.audio(chunk_audio, format="audio/wav", autoplay=True)
-        full_audio.extend(chunk_audio.getvalue())
-        duration = q.get()
-        time.sleep(duration)
-        chunk_audio = q.get()
 
-    t.join()
+    chunk = q.get()
+    while chunk:
+        chunk_audio, duration, prev_text, chunk_text = chunk
+        text_placeholder.markdown(f"{prev_text} **{chunk_text.strip()}**")
+        audio_placeholder.audio(chunk_audio, format="audio/wav", autoplay=True)
+        time.sleep(duration)
+        chunk = q.get()
+
+    full_audio = t.join()
     return io.BytesIO(full_audio)
