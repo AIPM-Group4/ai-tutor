@@ -75,10 +75,11 @@ class Model():
             self.history.pop(0)
         
         if "|" in output:
-            response_text, errors = output.split("|")
-            return response_text.strip(), errors.strip()
-        else:
-            return output.strip(), ""
+            aux = output.split("|")
+            if len(aux) > 1:
+                return aux[0].strip(), aux[1].strip()
+            else:
+                return aux[0].strip(), "No error detected"
         
 
     def feedback(self, chat_history: list[dict[str, str]]) -> dict[str, str]:

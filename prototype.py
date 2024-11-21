@@ -224,7 +224,7 @@ else:
                 # Step 3: Convert the chatbot's response to speech and play
                 st.markdown("Playing response...")
                 audio = st_util.stream_tts(response)
-                message = {"user": "assistant", "text": response, "audio_bytes": None}
+                message = {"user": "assistant", "text": response, "audio_bytes": audio}
                 error_message = {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
                 #st_util.display_message(message)
                 st.session_state.chat_history.append(message)
