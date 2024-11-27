@@ -167,7 +167,9 @@ else:
 
                             NOTES:
                             - Do not wait for the user to start speaking. Start by introducing yourself in French, and then respond to their questions and initiate topics of conversation. 
-                            - You should output your response in this format: <response> | <list of errors and their corrections>.
+                            - You should output your response in this format: <response> | <list of errors and their corrections in English>.
+                            - If there are possible suggestion on rephrasing a tutee's sentence to sound more native, explain the alternative phrase in the error section. If there are any suggestions, explain why it is better.
+                            - If there are no errors or suggestions, state "Good job! You made no errors." in English after the "|" symbol.
                             - Write as you would speak. Be conversational and informal.
                             - Provide concise responses, and adapt your tone and language to the level of the person you're speaking with.
                             - You should not ask more than 2 questions on the same topic.
@@ -228,9 +230,6 @@ else:
                 error_message = {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
                 #st_util.display_message(message)
                 st.session_state.chat_history.append(message)
-                st.session_state.chat_history.append(
-                    {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
-                )
                 st.session_state.chat_history.append(error_message)
                 db_util.save_message(user_id, st.session_state.session_id, message)
                 db_util.save_message(user_id, st.session_state.session_id, error_message)

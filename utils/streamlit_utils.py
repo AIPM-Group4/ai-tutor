@@ -116,6 +116,7 @@ def stream_tts(text):
     text_placeholder = st.empty()
     audio_placeholder = st.empty()
     q = queue.Queue()
+    full_audio = bytearray()
     t = threading.Thread(target=_streaming_worker, args=(text, q))
     t.start()
 
@@ -124,8 +125,9 @@ def stream_tts(text):
         chunk_audio, duration, prev_text, chunk_text = chunk
         text_placeholder.markdown(f"{prev_text} **{chunk_text.strip()}**")
         audio_placeholder.audio(chunk_audio, format="audio/wav", autoplay=True)
+        full_audio.extend(chunk_audio.getvalue())
         time.sleep(duration)
         chunk = q.get()
 
-    full_audio = t.join()
+    t.join()
     return io.BytesIO(full_audio)
