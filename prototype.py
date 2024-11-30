@@ -2,12 +2,14 @@ import streamlit as st
 import utils.auth_functions as auth_functions
 import utils.db_util as db_util
 import utils.streamlit_utils as st_util
+from firebase_admin import auth
 
 from transcribe import process_speech_to_text, process_speech_bytes_to_text
 from dialogue import Model
 import firebase_admin
 from firebase_admin import firestore, initialize_app, credentials
 import datetime
+from utils.streamlit_google_auth import Authenticate
 from audio_recorder_streamlit import audio_recorder
 import uuid
 from dotenv import load_dotenv
@@ -17,7 +19,7 @@ load_dotenv()
 TEST_MODE = False
 
 if not firebase_admin._apps: 
-    cred = credentials.Certificate(dict(st.secrets['FIREBASE_CRED']['cred']))
+    cred = credentials.Certificate(dict(st.secrets['CRED']['firebase_cred']))
     initialize_app(cred)
        
         
@@ -47,8 +49,8 @@ if "text_sent" not in st.session_state:
     st.session_state.text_sent = False
 if "conversation_active" not in st.session_state:
     st.session_state.conversation_active = False
-if "user" not in st.session_state:
-    st.session_state.user = None
+if "user_info" not in st.session_state:
+    st.session_state.user_info = None
 if "selected_session" not in st.session_state:
     st.session_state.selected_session = None # For Previous Session selection
 if "session_id" not in st.session_state:
@@ -57,10 +59,18 @@ if "db" not in st.session_state:
     st.session_state.db = firestore.client()
 if "model" not in st.session_state:
     st.session_state.model = None
+if "authenticator" not in st.session_state:
+    st.session_state.authenticator = Authenticate(
+        secret_credentials_config = dict(st.secrets['CRED']['oauth_cred']),
+        cookie_name='my_cookie_name',
+        cookie_key='this_is_secret',
+        redirect_uri = 'http://localhost:8501',
+    )
 
 # If not logged in.
-if st.session_state.user == None:
+if not st.session_state.user_info or "authorized" not in st.session_state or not st.session_state.authorized:
     col1,col2,col3 = st.columns([1,2,1])
+    auth_functions.google_auth()
 
     # Authentication form layout
     do_you_have_an_account = col2.selectbox(label='Do you have an account?',options=('Yes','No','I forgot my password'))
@@ -94,7 +104,14 @@ if st.session_state.user == None:
 
 # If logged in
 else:
-    user_id = st.session_state.user.uid
+    if 'oauth_id' in st.session_state and st.session_state['oauth_id']:
+        user_id = st.session_state.oauth_id
+    else:
+        # If account created by email
+        email = st.session_state.user_info["email"]
+        user = auth.get_user_by_email(email)
+        user_id = user.uid
+        
     st.markdown('''
     <style>
         [data-testid="stSidebar"]{
