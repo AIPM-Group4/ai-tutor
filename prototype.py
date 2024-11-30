@@ -102,13 +102,13 @@ if not st.session_state.user_info or not st.session_state.authorized:
 
 # If logged in
 else:
-    if 'oauth_id' in st.session_state and st.session_state['oauth_id']:
-        user_id = st.session_state.oauth_id
-    else:
+    try:
         # If account created by email
         email = st.session_state.user_info["email"]
         user = auth.get_user_by_email(email)
         user_id = user.uid
+    except:
+        user_id = st.session_state.oauth_id
         
     st.markdown('''
     <style>
@@ -137,7 +137,7 @@ else:
         st_util.display_settings(session_data)
         st.subheader('Chat History')
         st_util.display_chat(session_data['messages'])
-
+        st_util.display_feedback(session_data)
     else:
         # Title
         st.title("AI Tutor")
@@ -160,6 +160,7 @@ else:
                 feedback = st.session_state.model.feedback(st.session_state.chat_history)
                 st.write("## Feedback Summary")
                 st.write(feedback)
+                db_util.save_feedback(user_id, st.session_state.session_id, feedback)
             else:
                 text_prompt = st.text_input(label='Roleplay scenario description (optional)')
                 if st.button('Begin Conversation'):
