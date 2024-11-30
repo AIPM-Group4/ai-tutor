@@ -60,7 +60,7 @@ if "authenticator" not in st.session_state:
         secret_credentials_config = dict(st.secrets['CRED']['oauth_cred']),
         cookie_name='my_cookie_name',
         cookie_key='this_is_secret',
-        redirect_uri = 'http://localhost:8501',
+        redirect_uri = 'https://aitutor-epfl.streamlit.app',
     )
 if "authorized" not in st.session_state:
     st.session_state.authorized = None
