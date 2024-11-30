@@ -3,6 +3,7 @@ torch
 torchvision
 torchaudio
 firebase_admin 
+extra_streamlit_components==0.1.7
 WhisperSpeech==0.8
 langchain
 langchain_ollama

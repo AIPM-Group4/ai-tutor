@@ -4,17 +4,13 @@ import utils.db_util as db_util
 import utils.streamlit_utils as st_util
 from firebase_admin import auth
 
-from transcribe import process_speech_to_text, process_speech_bytes_to_text
+from transcribe import process_speech_bytes_to_text
 from dialogue import Model
 import firebase_admin
 from firebase_admin import firestore, initialize_app, credentials
-import datetime
 from utils.streamlit_google_auth import Authenticate
 from audio_recorder_streamlit import audio_recorder
 import uuid
-from dotenv import load_dotenv
-
-load_dotenv()
 
 TEST_MODE = False
 

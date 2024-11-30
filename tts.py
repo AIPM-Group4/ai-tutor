@@ -1,18 +1,13 @@
-
-import os
 import io
 
 import uuid
-
-from dotenv import load_dotenv
 from elevenlabs import VoiceSettings
 import elevenlabs.client as ec
 from elevenlabs.client import ElevenLabs
 from gtts import gTTS
+import streamlit as st
 
-load_dotenv()
-
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+ELEVENLABS_API_KEY = st.secrets["ELEVENLABS_API_KEY"]
 
 if not ELEVENLABS_API_KEY:
     raise ValueError("ELEVENLABS_API_KEY environment variable not set")

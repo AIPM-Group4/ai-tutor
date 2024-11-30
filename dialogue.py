@@ -1,9 +1,6 @@
-import os
 from openai import OpenAI
 from langchain_core.messages import HumanMessage, AIMessage
-from dotenv import load_dotenv
-
-load_dotenv()
+import streamlit as st
 
 HISTORY_LENGTH = 100
 MODEL = "gpt-4o-mini"  # You can change this to other OpenAI models as needed
@@ -15,7 +12,7 @@ class Model():
 
         # Initialize OpenAI client
         self.client = OpenAI(
-            api_key=os.getenv("OPENAI_API_KEY")
+            api_key=st.secrets['OPENAI_API_KEY']
         )  # Make sure to set your API key in the environment variable
 
         # Define behaviour

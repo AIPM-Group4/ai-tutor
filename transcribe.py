@@ -1,11 +1,10 @@
 from openai import OpenAI
-import os
-from dotenv import load_dotenv
+import streamlit as st
 
 load_dotenv()
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY")
+    api_key=st.secrets['OPENAI_API_KEY']
 )
 
 def process_speech_to_text(audio_file, lang="en"):
