@@ -33,6 +33,12 @@ def save_new_title(user_id, session_id, new_title):
     session_ref.update({
         "title": new_title
     })
+    
+def save_feedback(user_id, session_id, feedback):
+    session_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id)
+    session_ref.update({
+        "feedback": feedback
+    })
 
 def load_previous_sessions(user_id):
     sessions_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions")
