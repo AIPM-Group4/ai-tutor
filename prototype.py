@@ -67,6 +67,8 @@ if "authorized" not in st.session_state:
 
 # If not logged in.
 if not st.session_state.user_info or not st.session_state.authorized:
+    # Markdown with HTML title because st functions weren't working so great
+    st.markdown("<h1 style='text-align: center; color: black;'>AI Tutor</h1>", unsafe_allow_html=True)
     col1,col2,col3 = st.columns([1,2,1])
     auth_functions.google_auth()
 
