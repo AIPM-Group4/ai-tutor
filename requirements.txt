@@ -8,6 +8,7 @@ gtts
 openai
 extra_streamlit_components
 google_auth_oauthlib
+audio_recorder_streamlit
 WhisperSpeech==0.8
 langchain
 langchain_ollama
