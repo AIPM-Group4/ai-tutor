@@ -29,3 +29,10 @@ python3 -m venv venv
 source venv/bin/activate
 python3 -m pip install -r requirements.txt
 python3 agent.py dev
+
+# Streaming (speech-to-speech pipeline)(not used)
+pip install faster-whisper
+pip install torch torchvision torchaudio
+pip install rich
+pip install deepfilternet
+pip install git+https://github.com/andimarafioti/MeloTTS.git#egg=MeloTTS
