@@ -47,6 +47,11 @@ def display_chat_title(session_data):
         if col2.button('Cancel'):
             st.session_state.renaming_title = False
             st.rerun()
+    
+def display_feedback(session_data):
+    if "feedback" in session_data:
+        st.write("## Feedback Summary")
+        st.write(session_data['feedback'])
 
 def restart_conversation(text_sent=False, 
                          audio_processed=False, 
