@@ -3,6 +3,7 @@ import requests
 import streamlit as st
 from firebase_admin import auth
 
+
 ## -------------------------------------------------------------------------------------------------
 ## Firebase Auth API -------------------------------------------------------------------------------
 ## -------------------------------------------------------------------------------------------------
@@ -81,7 +82,7 @@ def sign_in(email:str, password:str) -> None:
         # Save user info to session state and rerun
         else:
             st.session_state.user_info = user_info
-            st.session_state.user = auth.get_user_by_email(email)
+            st.session_state.authorized = True
             st.rerun()
 
     except requests.exceptions.HTTPError as error:
@@ -137,6 +138,7 @@ def reset_password(email:str) -> None:
 
 
 def sign_out() -> None:
+    st.session_state.authenticator.logout()
     st.session_state.clear()
     st.session_state.auth_success = 'You have successfully signed out'
 
@@ -157,3 +159,9 @@ def delete_account(password:str) -> None:
 
     except Exception as error:
         print(error)
+        
+def google_auth():
+    # Catch the login event
+    st.session_state.authenticator.check_authentification()
+    # Create the login button
+    st.session_state.authenticator.login()
