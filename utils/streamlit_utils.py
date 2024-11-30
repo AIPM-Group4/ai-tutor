@@ -1,7 +1,6 @@
 from mutagen.mp3 import MP3
 import io
 import time
-from tts import output_audio_gtts
 from tts import output_audio_elevenlabs
 import queue
 import re
