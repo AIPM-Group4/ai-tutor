@@ -7,6 +7,7 @@ elevenlabs
 gtts
 openai
 extra_streamlit_components
+google_auth_oauthlib
 WhisperSpeech==0.8
 langchain
 langchain_ollama
