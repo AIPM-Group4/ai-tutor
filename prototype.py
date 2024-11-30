@@ -66,9 +66,13 @@ if "authenticator" not in st.session_state:
         cookie_key='this_is_secret',
         redirect_uri = 'http://localhost:8501',
     )
+if "authorized" not in st.session_state:
+    st.session_state.authorized = None
 
 # If not logged in.
-if not st.session_state.user_info or "authorized" not in st.session_state or not st.session_state.authorized:
+if not st.session_state.user_info or not st.session_state.authorized:
+    print(st.session_state.user_info)
+    print(st.session_state.authorized)
     col1,col2,col3 = st.columns([1,2,1])
     auth_functions.google_auth()
 

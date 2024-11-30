@@ -73,7 +73,6 @@ def sign_in(email:str, password:str) -> None:
 
         # Get account information
         user_info = get_account_info(id_token)["users"][0]
-        print(user_info)
 
         # If email is not verified, send verification email and do not sign in
         if not user_info["emailVerified"]:
