@@ -138,7 +138,7 @@ def reset_password(email:str) -> None:
 
 
 def sign_out() -> None:
-    st.session_state.authenticator.logout()
+    #st.session_state.authenticator.logout()
     st.session_state.clear()
     st.session_state.auth_success = 'You have successfully signed out'
 
@@ -165,3 +165,10 @@ def google_auth():
     st.session_state.authenticator.check_authentification()
     # Create the login button
     st.session_state.authenticator.login()
+    
+def login_as_guest(color='white'):
+    _,_,col,_,_= st.columns([1,1,1.5,1,1])
+    if col.button('Continue as a Guest'):
+        st.session_state.user_info = 'guest'
+        st.session_state.authorized = True
+        st.rerun()

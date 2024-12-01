@@ -18,7 +18,6 @@ if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets['CRED']['firebase_cred']))
     initialize_app(cred)
        
-        
 def generate_feedback(chat_history):
     """
     Generate feedback for the conversation session.
@@ -55,13 +54,14 @@ if "db" not in st.session_state:
     st.session_state.db = firestore.client()
 if "model" not in st.session_state:
     st.session_state.model = None
-if "authenticator" not in st.session_state:
-    st.session_state.authenticator = Authenticate(
-        secret_credentials_config = dict(st.secrets['CRED']['oauth_cred']),
-        cookie_name='my_cookie_name',
-        cookie_key='this_is_secret',
-        redirect_uri = 'https://aitutor-epfl.streamlit.app',
-    )
+#Google Auth Currently turned off.
+#if "authenticator" not in st.session_state:
+#    st.session_state.authenticator = Authenticate(
+#        secret_credentials_config = dict(st.secrets['CRED']['oauth_cred']),
+#        cookie_name='my_cookie_name',
+#        cookie_key='this_is_secret',
+#        redirect_uri = 'https://aitutor-epfl.streamlit.app',
+#    ) 
 if "authorized" not in st.session_state:
     st.session_state.authorized = None
 
@@ -70,7 +70,7 @@ if not st.session_state.user_info or not st.session_state.authorized:
     # Markdown with HTML title because st functions weren't working so great
     st.markdown("<h1 style='text-align: center; color: black;'>AI Tutor</h1>", unsafe_allow_html=True)
     col1,col2,col3 = st.columns([1,2,1])
-    auth_functions.google_auth()
+    auth_functions.login_as_guest()
 
     # Authentication form layout
     do_you_have_an_account = col2.selectbox(label='Do you have an account?',options=('Yes','No','I forgot my password'))
@@ -110,7 +110,10 @@ else:
         user = auth.get_user_by_email(email)
         user_id = user.uid
     except:
-        user_id = st.session_state.oauth_id
+        if 'oauth_id' in st.session_state:
+            user_id = st.session_state.oauth_id
+        else:
+            user_id = None
         
     st.markdown('''
     <style>
@@ -124,22 +127,23 @@ else:
     if col1.button(f'Begin new conversation'):
         st_util.restart_conversation()
     col2.button(label='Sign Out',on_click=auth_functions.sign_out,type='primary')
-        
-    st.sidebar.title("Previous Chat Sessions")
-    session_ids = db_util.load_previous_sessions(user_id)
-
-    for session in session_ids:
-        if st.sidebar.button(f"{session['title']}"):
-            st_util.restart_conversation(selected_session=session["session_id"])
     
-    if st.session_state.selected_session:
-        # Display selected chat session messages
-        session_data = db_util.load_chat_info(user_id, st.session_state.selected_session)
-        st_util.display_chat_title(session_data)
-        st_util.display_settings(session_data)
-        st.subheader('Chat History')
-        st_util.display_chat(session_data['messages'])
-        st_util.display_feedback(session_data)
+    if user_id: # If not Guest Login
+        st.sidebar.title("Previous Chat Sessions")
+        session_ids = db_util.load_previous_sessions(user_id)
+
+        for session in session_ids:
+            if st.sidebar.button(f"{session['title']}"):
+                st_util.restart_conversation(selected_session=session["session_id"])
+        
+        if st.session_state.selected_session:
+            # Display selected chat session messages
+            session_data = db_util.load_chat_info(user_id, st.session_state.selected_session)
+            st_util.display_chat_title(session_data)
+            st_util.display_settings(session_data)
+            st.subheader('Chat History')
+            st_util.display_chat(session_data['messages'])
+            st_util.display_feedback(session_data)
     else:
         # Title
         st.title("AI Tutor")

@@ -3,20 +3,24 @@ import datetime
 import streamlit as st
 
 def save_message(user_id, session_id, message):
-        session_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id)
-        if not session_ref.get().exists:
-            session_ref.set({
-                "start_time": datetime.datetime.now(),
-                "messages": []
-            })
-        message = dict(message)
-        message["audio_bytes"] = None # Firestore can't handle bytes
-        # Add message to messages array
-        session_ref.update({
-            "messages": firestore.ArrayUnion([message])
+    if not user_id:
+        return
+    session_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id)
+    if not session_ref.get().exists:
+        session_ref.set({
+            "start_time": datetime.datetime.now(),
+            "messages": []
         })
+    message = dict(message)
+    message["audio_bytes"] = None # Firestore can't handle bytes
+    # Add message to messages array
+    session_ref.update({
+        "messages": firestore.ArrayUnion([message])
+    })
 
 def save_chat_settings(user_id, session_id, settings):
+    if not user_id:
+        return
     session_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id)
     if not session_ref.get().exists:
         session_ref.set({
@@ -29,18 +33,24 @@ def save_chat_settings(user_id, session_id, settings):
     })
 
 def save_new_title(user_id, session_id, new_title):
+    if not user_id:
+        return
     session_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id)
     session_ref.update({
         "title": new_title
     })
     
 def save_feedback(user_id, session_id, feedback):
+    if not user_id:
+        return
     session_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id)
     session_ref.update({
         "feedback": feedback
     })
 
 def load_previous_sessions(user_id):
+    if not user_id:
+        return
     sessions_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions")
     sessions = sessions_ref.order_by("start_time", direction=firestore.Query.DESCENDING).stream()
     
@@ -61,10 +71,14 @@ def load_previous_sessions(user_id):
     return session_ids
 
 def load_chat_info(user_id, session_id):
+    if not user_id:
+        return
     session_ref = st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id)
     session_data = session_ref.get().to_dict()
     return session_data
 
 def delete_chat_history(user_id, session_id):
+    if not user_id:
+        return
     st.session_state.selected_session = None
     st.session_state.db.collection("students").document(user_id).collection("chat_sessions").document(session_id).delete()
