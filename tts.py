@@ -70,8 +70,6 @@ def output_audio(text: str, lang: str = 'fr', stream: bool = False) -> str:
     return save_file_path
 
 def output_audio_elevenlabs(text: str, prev=ec.OMIT, next=ec.OMIT, male: bool = False, lang: str = 'Français'):
-    lang = 'fr' if lang == 'Français' else 'de'
-    return output_audio_gtts(text, lang=lang)
     if lang == 'Français':
         voice_id = "6vTyAgAT8PncODBcLjRf"
     else:
