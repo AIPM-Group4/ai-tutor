@@ -65,7 +65,7 @@ def load_teacher_interface(class_ids: list[str]=["0"]):
         for index, row in df.iterrows():
             sessions_ref = db.collection('students').document(row['id']).collection('chat_sessions')
             num_chats = len(list(sessions_ref.stream()))
-            num_messages = sum(1 for _ in sessions_ref.stream())
+            num_messages = sum(len(session.to_dict().get('messages', [])) for session in sessions_ref.stream())
             df.at[index, 'num_chats'] = num_chats
             df.at[index, 'num_messages'] = num_messages
         st.dataframe(df[['class', 'username', 'last_active', 'num_chats', 'num_messages']], hide_index=True)
