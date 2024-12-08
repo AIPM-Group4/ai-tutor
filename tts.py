@@ -70,6 +70,8 @@ def output_audio(text: str, lang: str = 'fr', stream: bool = False) -> str:
     return save_file_path
 
 def output_audio_elevenlabs(text: str, prev=ec.OMIT, next=ec.OMIT, male: bool = False, lang: str = 'Français'):
+    lang = 'fr' if lang == 'Français' else 'de'
+    return output_audio_gtts(text, lang=lang)
     if lang == 'Français':
         voice_id = "6vTyAgAT8PncODBcLjRf"
     else:
@@ -77,21 +79,29 @@ def output_audio_elevenlabs(text: str, prev=ec.OMIT, next=ec.OMIT, male: bool = 
     if not prev: prev = ec.OMIT
     if not next: next = ec.OMIT
     # Calling the text_to_speech conversion API with detailed parameters
-    response = client.text_to_speech.convert(
-        voice_id=voice_id,  # Charlotte/Brian pre-made voices
-        optimize_streaming_latency="0",
-        output_format="mp3_22050_32",
-        text=text,
-        model_id="eleven_multilingual_v2",  # use the turbo model for low latency, for other languages use the `eleven_multilingual_v2`
-        voice_settings=VoiceSettings(
-            stability=0.5,
-            similarity_boost=0.7,
-            style=0,
-            use_speaker_boost=True,
-        ),
-        previous_text=prev,
-        next_text=next,
-    )
+    try:
+        response = client.text_to_speech.convert(
+            voice_id=voice_id,  # Charlotte/Brian pre-made voices
+            optimize_streaming_latency="0",
+            output_format="mp3_22050_32",
+            text=text,
+            model_id="eleven_multilingual_v2",  # use the turbo model for low latency, for other languages use the `eleven_multilingual_v2`
+            voice_settings=VoiceSettings(
+                stability=0.5,
+                similarity_boost=0.7,
+                style=0,
+                use_speaker_boost=True,
+            ),
+            previous_text=prev,
+            next_text=next,
+        )
+    except Exception as e:
+        lang = 'fr' if lang == 'Français' else 'de'
+        return output_audio_gtts(text, lang=lang)
+
+    if not response:
+        lang = 'fr' if lang == 'Français' else 'de'
+        return output_audio_gtts(text, lang=lang)
 
     audio_stream = io.BytesIO()
 
