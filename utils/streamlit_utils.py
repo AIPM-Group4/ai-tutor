@@ -7,11 +7,8 @@ import re
 import streamlit as st
 from . import db_util
 import threading
-import deepl
 from openai import OpenAI
-# from googletrans import Translator
 
-# deepl_client = deepl.Translator(st.secrets['DEEPL_API_KEY'])
 # Use OpenAI API for translation
 client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
