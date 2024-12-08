@@ -14,7 +14,7 @@ import uuid
 
 TEST_MODE = False
 
-if not firebase_admin._apps: 
+if not firebase_admin._apps:
     cred = credentials.Certificate(dict(st.secrets['CRED']['firebase_cred']))
     initialize_app(cred)
        
@@ -54,6 +54,10 @@ if "db" not in st.session_state:
     st.session_state.db = firestore.client()
 if "model" not in st.session_state:
     st.session_state.model = None
+
+if "show_transcription" not in st.session_state:
+    st.session_state.show_transcription = True  # Default to showing transcriptions
+
 #Google Auth Currently turned off.
 #if "authenticator" not in st.session_state:
 #    st.session_state.authenticator = Authenticate(
@@ -64,35 +68,151 @@ if "model" not in st.session_state:
 #    ) 
 if "authorized" not in st.session_state:
     st.session_state.authorized = None
+if "language" not in st.session_state:
+    st.session_state.language = None
+
+# Add this right after your imports and before any other code
+st.markdown("""
+    <style>
+        #feedback-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #FF4B4B;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            border: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 999;
+        }
+        #feedback-button:hover {
+            background-color: #FF2E2E;
+        }
+        /* Adjust main content to not be hidden by the feedback button */
+        .main .block-container {
+            padding-bottom: 80px;
+        }
+    </style>
+    <a href="https://docs.google.com/forms/d/e/1FAIpQLSfzXOawMjCUzO2wnwpf5feI1aDlHaCe6IClZEiU2dPqoU8VdQ/viewform?usp=sf_link" target="_blank" id="feedback-button">
+        Please give feedback once you are done with the app! (Even if you had issues with it.)
+    </a>
+""", unsafe_allow_html=True)
 
 # If not logged in.
 if not st.session_state.user_info or not st.session_state.authorized:
-    # Markdown with HTML title because st functions weren't working so great
-    st.markdown("<h1 style='text-align: center; color: black;'>AI Tutor</h1>", unsafe_allow_html=True)
-    col1,col2,col3 = st.columns([1,2,1])
-    auth_functions.login_as_guest()
-
-    # Authentication form layout
-    do_you_have_an_account = col2.selectbox(label='Do you have an account?',options=('Yes','No','I forgot my password'))
-    auth_form = col2.form(key='Authentication form',clear_on_submit=False)
-    email = auth_form.text_input(label='Email')
-    password = auth_form.text_input(label='Password',type='password') if do_you_have_an_account in {'Yes','No'} else auth_form.empty()
+    # Markdown with HTML title
+    st.markdown("<h1 style='text-align: center;'>AI Tutor</h1>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
+    
+    # Add login type selection
+    login_type = col2.radio("Choose how to enter:", ["I have a class ID", "I do not have a class ID"])
+    auth_form = col2.form(key='Authentication form', clear_on_submit=False)
     auth_notification = col2.empty()
 
-    # Sign In
-    if do_you_have_an_account == 'Yes' and auth_form.form_submit_button(label='Sign In',use_container_width=True,type='primary'):
-        with auth_notification, st.spinner('Signing in'):
-            auth_functions.sign_in(email,password)
+    if login_type == "I have a class ID":
+         # Guest access form
+        username = auth_form.text_input(label='Username')
+        class_id = auth_form.text_input(label='Class ID')
+        if "DE" in class_id:
+            language = "Deutsch"
+        else:
+            language = "Français"
+        
+        if auth_form.form_submit_button(label='Enter as Guest', use_container_width=True, type='primary'):
+            if username and class_id:
+                guest_info = auth_functions.guest_login(username, class_id)
+                if guest_info:
+                    st.session_state.user_info = guest_info
+                    st.session_state.authorized = True
+                    st.session_state.language = language
+                    st.rerun()
+                else:
+                    auth_notification.error('Error logging in as guest. Please try again.')
+            else:
+                auth_notification.error('Please enter both username and class ID')
 
-    # Create Account
-    elif do_you_have_an_account == 'No' and auth_form.form_submit_button(label='Create Account',use_container_width=True,type='primary'):
-        with auth_notification, st.spinner('Creating account'):
-            auth_functions.create_account(email,password)
+    elif login_type == "I do not have a class ID":
+        # Guest access form
+        username = auth_form.text_input(label='Username')
+        language = auth_form.selectbox(label='Language', options=['Français', 'Deutsch'])
+        # class_id = auth_form.text_input(label='Class ID')
+        
+        if auth_form.form_submit_button(label='Enter as Guest', use_container_width=True, type='primary'):
+            if username:
+                guest_info = auth_functions.guest_login(username, '0')
+                if guest_info:
+                    st.session_state.user_info = guest_info
+                    st.session_state.authorized = True
+                    st.session_state.language = language
+                    st.rerun()
+                else:
+                    auth_notification.error('Error logging in as guest. Please try again.')
+            else:
+                auth_notification.error('Please enter both username and class ID')
+    
+    # elif login_type == "Sign In":
+    #     # Regular sign in form
+    #     email = auth_form.text_input(label='Email')
+    #     password = auth_form.text_input(label='Password', type='password')
+        
+    #     if auth_form.form_submit_button(label='Sign In', use_container_width=True, type='primary'):
+    #         with auth_notification, st.spinner('Signing in'):
+    #             auth_functions.sign_in(email, password)
+    
+    # elif login_type == "Create Account":
+    #     # Account creation form
+    #     email = auth_form.text_input(label='Email')
+    #     password = auth_form.text_input(label='Password', type='password')
+    #     available_classes = ['Class A', 'Class B', 'Class C', 'Unassigned']
+    #     class_id = auth_form.selectbox('Select Class', options=available_classes)
+        
+    #     if auth_form.form_submit_button(label='Create Account', use_container_width=True, type='primary'):
+    #         with auth_notification, st.spinner('Creating account'):
+    #             auth_functions.create_account(email, password, class_id)
+    
+    # elif login_type == "Forgot Password":
+    #     # Password reset form
+    #     email = auth_form.text_input(label='Email')
+        
+    #     if auth_form.form_submit_button(label='Send Password Reset Email', use_container_width=True, type='primary'):
+    #         with auth_notification, st.spinner('Sending password reset link'):
+    #             auth_functions.reset_password(email)
 
-    # Password Reset
-    elif do_you_have_an_account == 'I forgot my password' and auth_form.form_submit_button(label='Send Password Reset Email',use_container_width=True,type='primary'):
-        with auth_notification, st.spinner('Sending password reset link'):
-            auth_functions.reset_password(email)
+# # If not logged in.
+# if not st.session_state.user_info or not st.session_state.authorized:
+#     # Markdown with HTML title because st functions weren't working so great
+#     st.markdown("<h1 style='text-align: center; color: black;'>AI Tutor</h1>", unsafe_allow_html=True)
+#     col1,col2,col3 = st.columns([1,2,1])
+#     auth_functions.login_as_guest()
+
+#     # Authentication form layout
+#     do_you_have_an_account = col2.selectbox(label='Do you have an account?',options=('Yes','No','I forgot my password'))
+#     auth_form = col2.form(key='Authentication form',clear_on_submit=False)
+#     email = auth_form.text_input(label='Email')
+#     password = auth_form.text_input(label='Password',type='password') if do_you_have_an_account in {'Yes','No'} else auth_form.empty()
+#     auth_notification = col2.empty()
+
+#     # Sign In
+#     if do_you_have_an_account == 'Yes' and auth_form.form_submit_button(label='Sign In',use_container_width=True,type='primary'):
+#         with auth_notification, st.spinner('Signing in'):
+#             auth_functions.sign_in(email,password)
+
+#     # Create Account
+#     elif do_you_have_an_account == 'No' and auth_form.form_submit_button(label='Create Account',use_container_width=True,type='primary'):
+#         with auth_notification, st.spinner('Creating account'):
+#             auth_functions.create_account(email,password,"0")
+
+#     # Password Reset
+#     elif do_you_have_an_account == 'I forgot my password' and auth_form.form_submit_button(label='Send Password Reset Email',use_container_width=True,type='primary'):
+#         with auth_notification, st.spinner('Sending password reset link'):
+#             auth_functions.reset_password(email)
 
     # Authentication success and warning messages
     if 'auth_success' in st.session_state:
@@ -105,10 +225,11 @@ if not st.session_state.user_info or not st.session_state.authorized:
 # If logged in
 else:
     try:
-        # If account created by email
-        email = st.session_state.user_info["email"]
-        user = auth.get_user_by_email(email)
-        user_id = user.uid
+        user_id = st.session_state.user_info['id']
+        # # If account created by email
+        # email = st.session_state.user_info["email"]
+        # user = auth.get_user_by_email(email)
+        # user_id = user.uid
     except:
         if 'oauth_id' in st.session_state:
             user_id = st.session_state.oauth_id
@@ -174,11 +295,12 @@ else:
                 if text_prompt:
                     db_util.save_chat_settings(user_id, st.session_state.session_id, {'text_prompt': text_prompt})
                 else:
-                    text_prompt = "Imagine you met someone at a social event in France, and you don't know anything about them. Start by introducing yourself in French, and then respond to their questions and initiate topics of conversation."
+                    text_prompt = f"Hello, I would like to practice my {"German" if st.session_state.language == "Deutsch" else "French"}. Can you please start an engaging conversation in this language with me. Introduce yourself and then suggest three topics of conversation and let me choose one. The topics should be role-play scenarios of everyday life."
+                
                 st.session_state.model = Model(
                     system_prompt=(
                         f"""
-                        You are a French language tutor. As a native French speaker, you will be speaking with a tutee who wants to improve their French skills through a simulated conversation. 
+                        You are a language tutor. As a native {st.session_state.language} speaker, you will be speaking with a tutee who wants to improve their {st.session_state.language} skills through a simulated conversation. 
                         Additionally, develop a response generation strategy for introducing subtle corrections to your answers when the provided information is unclear or incorrect.
                         Memorize any mistakes made during the conversation and provide a comprehensive report of errors at the conclusion of the discussion, detailing the corrections and explanations for the corrections. Go!
                         
@@ -187,7 +309,8 @@ else:
                         You must play a suited role in the given scenario and interact with the tutee.
 
                         NOTES:
-                        - Do not wait for the user to start speaking. Start by introducing yourself in French, and then respond to their questions and initiate topics of conversation. 
+                        - Your voice is female, so choose a female name.
+                        - Do not wait for the user to start speaking. Start by introducing yourself in the target language, and then respond to their questions and initiate topics of conversation. 
                         - You should output your response in this format: <response> | <list of errors and their corrections in English>.
                         - If there are possible suggestion on rephrasing a tutee's sentence to sound more native, explain the alternative phrase in the error section. If there are any suggestions, explain why it is better.
                         - If there are no errors or suggestions, state "Good job! You made no errors." in English after the "|" symbol.
@@ -198,11 +321,12 @@ else:
                         - You should be engaging in the conversation by telling anecdotes that happened to you (do not do this every time you answer. Spice it up!).
                         - Ignore character errors such as using 'c' instead of 'ç' or oe instead of œ.
                         """
-                    )
+                    ),
+                    language=st.session_state.language
                 )
                 first_message = st.session_state.model.first_interaction()
-                audio = st_util.stream_tts(first_message)
-                message = {"user": "assistant", "text": first_message, "audio_bytes": audio} 
+                audio, translated_text = st_util.stream_tts(first_message, translation=True, lang=st.session_state.language)
+                message = {"user": "assistant", "text": first_message, "audio_bytes": audio, "translated_text": translated_text} 
                 db_util.save_message(user_id, st.session_state.session_id, message)
                 st.session_state.chat_history = [message]
                 st.rerun()
@@ -224,7 +348,8 @@ else:
                     # Process the audio to text
                     st.markdown("Processing audio...")
                     if not TEST_MODE:
-                        text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang='fr')
+                        lang = 'fr' if st.session_state.language == "Français" else 'de' if st.session_state.language == "Deutsch" else 'en'
+                        text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang=lang)
                         message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
                     else:
                         text = 'Sample text input.'
@@ -246,8 +371,8 @@ else:
             st.session_state.text_sent = True  # Set flag to True after response is generated
             # Step 3: Convert the chatbot's response to speech and play
             st.markdown("Playing response...")
-            audio = st_util.stream_tts(response)
-            message = {"user": "assistant", "text": response, "audio_bytes": audio}
+            audio, translated_text = st_util.stream_tts(response, translation=True, lang=st.session_state.language)
+            message = {"user": "assistant", "text": response, "audio_bytes": audio, "translated_text": translated_text}
             error_message = {"user": "assistant", "text": "Errors identified: " + errors, "audio_bytes": None}
             #st_util.display_message(message)
             st.session_state.chat_history.append(message)

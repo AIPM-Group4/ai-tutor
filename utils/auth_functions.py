@@ -2,6 +2,8 @@ import json
 import requests
 import streamlit as st
 from firebase_admin import auth
+from datetime import datetime
+from firebase_admin import firestore
 
 
 ## -------------------------------------------------------------------------------------------------
@@ -41,6 +43,7 @@ def send_password_reset_email(email):
     return request_object.json()
 
 def create_user_with_email_and_password(email, password):
+    # Create new account
     request_ref = "https://www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser?key={0}".format(st.secrets['FIREBASE_WEB_API_KEY'])
     headers = {"content-type": "application/json; charset=UTF-8" }
     data = json.dumps({"email": email, "password": password, "returnSecureToken": True})
@@ -97,10 +100,25 @@ def sign_in(email:str, password:str) -> None:
         st.session_state.auth_warning = 'Error: Please try again later'
 
 
-def create_account(email:str, password:str) -> None:
+def create_account(email:str, password:str, class_id:str='0', username:str=None) -> None:
     try:
         # Create account (and save id_token)
-        id_token = create_user_with_email_and_password(email,password)['idToken']
+        user_data = create_user_with_email_and_password(email,password)
+        id_token = user_data['idToken']
+        user_id = user_data['localId']
+
+        if username is None:
+            username = email.split('@')[0]
+
+        db = firestore.client()
+        db.collection('students').document(user_id).set({
+            'id': user_id,
+            'email': email,
+            'username': username,
+            'class': class_id,
+            'last_active': datetime.now(),
+            'is_guest': False
+        })
 
         # Create account and send email verification
         send_email_verification(id_token)
@@ -119,6 +137,49 @@ def create_account(email:str, password:str) -> None:
     except Exception as error:
         print(error)
         st.session_state.auth_warning = 'Error: Please try again later'
+
+
+def guest_login(username: str, class_id: str) -> dict:
+    """
+    Create or get guest user in students collection
+    Returns user info dictionary if successful
+    """
+    try:
+        db = firestore.client()
+
+        # Check if guest username already exists
+        guest_ref = db.collection('students').where('username', '==', username).where('class', '==', class_id).limit(1).stream()
+        guest_docs = list(guest_ref)
+        
+        if not guest_docs:
+            # Create new guest user
+            new_guest = db.collection('students').document()
+            guest_data = {
+                'id': new_guest.id,
+                'username': username,
+                'class': class_id,
+                'is_guest': True,
+                'last_active': datetime.now()
+            }
+            new_guest.set(guest_data)
+            guest_id = new_guest.id
+        else:
+            # Use existing guest user
+            guest_id = guest_docs[0].id
+            db.collection('students').document(guest_id).update({
+                'last_active': datetime.now()
+            })
+        
+        return {
+            'id': guest_id,
+            'username': username,
+            'class': class_id,
+            'is_guest': True
+        }
+        
+    except Exception as e:
+        print(f"Error in guest login: {e}")
+        return None
 
 
 def reset_password(email:str) -> None:

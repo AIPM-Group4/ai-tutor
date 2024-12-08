@@ -7,6 +7,13 @@ import re
 import streamlit as st
 from . import db_util
 import threading
+import deepl
+from openai import OpenAI
+# from googletrans import Translator
+
+# deepl_client = deepl.Translator(st.secrets['DEEPL_API_KEY'])
+# Use OpenAI API for translation
+client = OpenAI(api_key=st.secrets['OPENAI_API_KEY'])
 
 # Function to display chat messages in bubbles
 def display_chat(messages):
@@ -87,8 +94,12 @@ def display_message(message):
             if 'audio_bytes' in message and message['audio_bytes']:
                 st.audio(message['audio_bytes'], format="audio/wav", autoplay=False)
 
+    if 'translated_text' in message and message['translated_text']:
+        with st.expander("Show translation"):
+            st.write(message['translated_text'])
 
-def _streaming_worker(text, q):
+
+def _streaming_worker(text, q, lang='Français'):
     full_audio = bytearray()
     full_text = ""
 
@@ -99,7 +110,7 @@ def _streaming_worker(text, q):
     for chunk_text in chunks:
         # Generate audio
         #chunk_audio = output_audio_gtts(chunk_text, 'fr')
-        chunk_audio = output_audio_elevenlabs(text=chunk_text, prev=full_text)
+        chunk_audio = output_audio_elevenlabs(text=chunk_text, prev=full_text, lang=lang)
 
         # Calculate duration
         aux = MP3(chunk_audio)
@@ -116,22 +127,47 @@ def _streaming_worker(text, q):
     return io.BytesIO(full_audio)
 
 
-def stream_tts(text):
-    text_placeholder = st.empty()
+def translate_text(text, target_lang='English'):
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "system", "content": f"Translate the following text to {target_lang}: {text}. Only output the translation, no other text."}]
+    )
+    return response.choices[0].message.content
+
+
+def stream_tts(text, translation=True, lang='Français'):
+    with st.expander("Show transcription", expanded=False):
+        text_placeholder = st.empty()
+    with st.expander("Show translation"):
+        translation_placeholder = st.empty()
+    prev_translated_text = ""
     audio_placeholder = st.empty()
     q = queue.Queue()
     full_audio = bytearray()
-    t = threading.Thread(target=_streaming_worker, args=(text, q))
+    t = threading.Thread(target=_streaming_worker, args=(text, q, lang))
     t.start()
 
     chunk = q.get()
     while chunk:
         chunk_audio, duration, prev_text, chunk_text = chunk
-        text_placeholder.markdown(f"{prev_text} **{chunk_text.strip()}**")
+        text_placeholder.markdown(
+            f"{prev_text} **{chunk_text.strip()}**",
+        )
         audio_placeholder.audio(chunk_audio, format="audio/wav", autoplay=True)
         full_audio.extend(chunk_audio.getvalue())
-        time.sleep(duration)
+        current_time = time.time()
+        if translation:
+            translated_text = translate_text(chunk_text, target_lang='en')
+        else:
+            translated_text = ""
+        translation_placeholder.markdown(
+            f"{prev_translated_text} **{translated_text.strip()}**",
+        )
+        prev_translated_text += f' {translated_text}'
+        translation_time = time.time() - current_time
+        if translation_time < duration:
+            time.sleep(duration - translation_time)
         chunk = q.get()
 
     t.join()
-    return io.BytesIO(full_audio)
+    return io.BytesIO(full_audio), prev_translated_text
