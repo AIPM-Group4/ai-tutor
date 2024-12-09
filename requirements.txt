@@ -56,3 +56,7 @@ transformers==4.45.1
 typing_extensions==4.12.2
 urllib3==2.2.3
 wheel==0.44.0
+streamlit-javascript
+pyyaml
+ua-parser
+user-agents
