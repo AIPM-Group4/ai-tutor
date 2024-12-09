@@ -11,6 +11,8 @@ from firebase_admin import firestore, initialize_app, credentials
 from utils.streamlit_google_auth import Authenticate
 from audio_recorder_streamlit import audio_recorder
 import uuid
+from streamlit_javascript import st_javascript
+from user_agents import parse
 
 TEST_MODE = False
 
@@ -34,6 +36,12 @@ def generate_feedback(chat_history):
         "suggestions": suggestions,
     }
     return feedback
+
+ua_string = st_javascript("""window.navigator.userAgent;""")
+user_agent = parse(ua_string)
+
+if "is_mobile" not in st.session_state:
+    st.session_state.is_mobile = not user_agent.is_pc
 
 # Initialize session state for chat history and flags
 if "chat_history" not in st.session_state:
@@ -349,7 +357,10 @@ else:
                     st.markdown("Processing audio...")
                     if not TEST_MODE:
                         lang = 'fr' if st.session_state.language == "Français" else 'de' if st.session_state.language == "Deutsch" else 'en'
-                        text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang=lang)
+                        try:
+                            text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang=lang)
+                        except Exception as e:
+                            pass
                         message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
                     else:
                         text = 'Sample text input.'
