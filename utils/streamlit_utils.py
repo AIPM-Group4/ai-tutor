@@ -164,6 +164,7 @@ def stream_tts(text, translation=True, lang='Français'):
         translation_time = time.time() - current_time
         if translation_time < duration:
             time.sleep(duration - translation_time)
+        time.sleep(2)
         chunk = q.get()
 
     t.join()
