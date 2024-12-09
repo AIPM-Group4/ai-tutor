@@ -162,9 +162,14 @@ def stream_tts(text, translation=True, lang='Français'):
         )
         prev_translated_text += f' {translated_text}'
         translation_time = time.time() - current_time
-        if translation_time < duration:
-            time.sleep(duration - translation_time)
-        time.sleep(2)
+        # Wait for audio to finish playing
+        remaining_time = duration - translation_time
+        if remaining_time > 0:
+            time.sleep(remaining_time)
+            
+        # Wait a bit before next chunk to ensure audio finished
+        while audio_placeholder._latest_audio_player_state.get("paused", True):
+            time.sleep(0.1)
         chunk = q.get()
 
     t.join()
