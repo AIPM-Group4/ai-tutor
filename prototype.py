@@ -159,6 +159,7 @@ if not st.session_state.user_info or not st.session_state.authorized:
                     st.session_state.user_info = guest_info
                     st.session_state.authorized = True
                     st.session_state.language = language
+                    print(st.session_state.language)
                     st.rerun()
                 else:
                     auth_notification.error('Error logging in as guest. Please try again.')

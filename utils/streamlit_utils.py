@@ -1,7 +1,7 @@
 from mutagen.mp3 import MP3
 import io
 import time
-from tts import output_audio_elevenlabs
+from tts import output_audio_elevenlabs, output_audio_gtts
 import queue
 import re
 import streamlit as st
@@ -106,8 +106,9 @@ def _streaming_worker(text, q, lang='Français'):
 
     for chunk_text in chunks:
         # Generate audio
-        #chunk_audio = output_audio_gtts(chunk_text, 'fr')
-        chunk_audio = output_audio_elevenlabs(text=chunk_text, prev=full_text, lang=lang)
+        l = 'fr' if lang == 'Français' else 'de'
+        chunk_audio = output_audio_gtts(chunk_text, l)
+        # chunk_audio = output_audio_elevenlabs(text=chunk_text, prev=full_text, lang=lang)
 
         # Calculate duration
         aux = MP3(chunk_audio)
