@@ -12,8 +12,8 @@ db = firestore.client()
 
 teacher_id_to_class_id = {
     "mermoud": ["FR1", "FR2", "FR3", "FR4", "FR5", "FR6", "FR7"],
-    "aryan": ["DE1", "DE2"],
-    "bartholdi": ["DE3"],
+    "aryan": ["DE2", "DE3"],
+    "bartholdi": ["DE1"],
     "aitutor": ["0"]
 }
 
