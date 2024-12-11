@@ -37,7 +37,7 @@ def generate_feedback(chat_history):
     }
     return feedback
 
-ua_string = st_javascript("""window.navigator.userAgent;""")
+ua_string = str(st_javascript("""window.navigator.userAgent;"""))
 user_agent = parse(ua_string)
 
 if "is_mobile" not in st.session_state:
