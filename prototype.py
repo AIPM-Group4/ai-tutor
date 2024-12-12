@@ -360,9 +360,10 @@ else:
                         lang = 'fr' if st.session_state.language == "Français" else 'de' if st.session_state.language == "Deutsch" else 'en'
                         try:
                             text = process_speech_bytes_to_text('wav', audio_bytes, 'audio/wav', lang=lang)
+                            message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
                         except Exception as e:
-                            pass
-                        message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
+                            st.markdown("Error processing audio. Please try again.")
+                            st.rerun()
                     else:
                         text = 'Sample text input.'
                         message = {"user": "user", "text": text, "audio_bytes": audio_bytes}
